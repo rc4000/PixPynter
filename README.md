@@ -1,4 +1,4 @@
-# Pyxel-art-Studio
+# Pyxel
 pixel art tool written in python
 
 
