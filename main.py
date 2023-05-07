@@ -10,9 +10,7 @@ import platform
 import time
 import os
 from PIL import Image, ImageDraw
-
-
-
+from ast import literal_eval
 
 
 #GUI SETTINGS-----------------------------------
@@ -101,7 +99,7 @@ class VerticalScrolledFrame(ttk.Frame):
         ttk.Frame.__init__(self, parent, *args, **kw)
 
         # Create a canvas object and a vertical scrollbar for scrolling it.
-        self.vscrollbar = ttk.Scrollbar(self, orient=VERTICAL)
+        self.vscrollbar = ttk.Scrollbar(self, orient=VERTICAL,bootstyle=("round","ligth"))
         self.vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
         self.canvas = Canvas(self, bd=0, highlightthickness=0,
                            yscrollcommand=self.vscrollbar.set)
@@ -135,7 +133,7 @@ class VerticalScrolledFrame(ttk.Frame):
                 # Update the inner frame's width to fill the canvas.
                 self.canvas.itemconfigure(self.interior_id, width=self.canvas.winfo_width())
         self.canvas.bind('<Configure>', _configure_canvas)
-def call_file_chooser():
+def call_file_chooser(exten):
 
     file_chooser_window = Toplevel()
     file_chooser_window.focus()
@@ -148,6 +146,7 @@ def call_file_chooser():
 
     file = StringVar()
     file_chooser_window.close_now = False
+    file_chooser_window.ready_to_return = False
 
 
     top_frame = ttk.Frame(file_chooser_window)
@@ -161,7 +160,7 @@ def call_file_chooser():
     entry_address_bar = ttk.Entry(top_frame)
     entry_address_bar.pack(ipadx=60,pady=5,side=LEFT)
 
-    btn_file_up = ttk.Button(top_frame,image=folder_up_icon)
+    btn_file_up = ttk.Button(top_frame,bootstyle="secondary",image=folder_up_icon)
     btn_file_up.pack(side=LEFT,padx=5)
 
 
@@ -209,6 +208,7 @@ def call_file_chooser():
         def get_file_and_close(file_name):
             file.set(file_name)
             file_chooser_window.close_now = True
+            file_chooser_window.ready_to_return = True
 
 
         for i in list_dir_names + list_file_names:
@@ -225,13 +225,13 @@ def call_file_chooser():
                 icon_label = ttk.Label(button_frame,image=file_icon)
             elif os.path.isdir(f"{path}{bf_slash}{i}"):
                 icon_label = ttk.Label(button_frame,image=folder_icon)
-                button_frame.button.config(state='normal',command=partial(load_files,f'{path}{bf_slash}{i}'))
+                button_frame.button.config(state='normal',bootstyle="secondary",command=partial(load_files,f'{path}{bf_slash}{i}'))
             icon_label.pack(side=LEFT,padx=10)
 
             button_frame_label = ttk.Label(button_frame, text=f"{i}")
             button_frame_label.pack(fill=X)
 
-            if i.endswith('.(future file type)'):
+            if i.endswith(f'{exten}'):
                 button_frame.button.config(state='normal',command=partial(get_file_and_close,f"{path}{bf_slash}{i}"))
                 icon_label.config(image=wanted_file_icon)
                 button_frame_label.config()
@@ -251,7 +251,7 @@ def call_file_chooser():
 
     file_chooser_window.grab_set()
 
-    set_icon_to_window(file_chooser_window)
+    #set_icon_to_window(file_chooser_window)
 
     while not file_chooser_window.close_now and run:
         try:
@@ -269,12 +269,15 @@ def call_file_chooser():
     except:
         pass
 
-    return file.get()
-def call_save_as_file():
+    if file_chooser_window.ready_to_return:
+        return file.get()
+    else:
+        return None
+def call_save_as_file(title,exten):
 
     file_chooser_window = Toplevel()
     file_chooser_window.focus()
-    file_chooser_window.title("Save as a png file:")
+    file_chooser_window.title(title)
 
     center_tk_window(file_chooser_window,499,400)
     set_title_theme(file_chooser_window,theme=darkdetect.theme())
@@ -282,7 +285,7 @@ def call_save_as_file():
     file_chooser_window.update()
 
     file = StringVar()
-    file.set('.png')
+    file.set(exten)
 
     file_chooser_window.close_now = False
     file_chooser_window.ready_to_return = False
@@ -302,7 +305,7 @@ def call_save_as_file():
     entry_address_bar = ttk.Entry(top_frame)
     entry_address_bar.pack(ipadx=60,pady=5,side=LEFT)
 
-    btn_file_up = ttk.Button(top_frame,image=folder_up_icon)
+    btn_file_up = ttk.Button(top_frame,bootstyle="secondary",image=folder_up_icon)
     btn_file_up.pack(side=LEFT,padx=5)
 
 
@@ -323,8 +326,8 @@ def call_save_as_file():
 
 
     def ready_and_close(event=None):
-        if not file.get().endswith('.png') or file.get().replace(" ","").replace(".png","") == "":
-            alert(app_name,'PNG files must have a name\n and end with the extension .png')
+        if not file.get().endswith(exten) or file.get().replace(" ","").replace(exten,"") == "":
+            alert(app_name,f'{exten.upper()} files must have a name\n and end with the extension {exten}')
         else:
             file_chooser_window.ready_to_return =True
             file_chooser_window.close_now = True
@@ -377,7 +380,7 @@ def call_save_as_file():
             if os.path.isdir(f"{path}{bf_slash}{i}"):
                 icon_label = ttk.Label(button_frame,image=folder_icon)
 
-                button_frame.button = ttk.Button(button_frame,text='Open',command=partial(load_files,f'{path}{bf_slash}{i}'))
+                button_frame.button = ttk.Button(button_frame,text='Open',bootstyle="secondary",command=partial(load_files,f'{path}{bf_slash}{i}'))
                 button_frame.button.pack(side=LEFT)
 
                 
@@ -661,7 +664,18 @@ class class_backup_manager:
                     aux_hex_color = rgb_to_hex(  calculate_alpha_color( mtx[row][column][0:3] ,hex_to_rgb("#333333"),mtx[row][column][3]))
 
                 canvas.itemconfig(button_number, fill= aux_hex_color,outline =aux_hex_color  )
-        
+    def load_from_matrix(self,mtx):
+        button_number = 0
+        for row in range(amount_rows):
+            for column in range(amount_columns):
+                button_number += 1
+
+                if not button_number % 2 == 0:
+                    aux_hex_color = rgb_to_hex(  calculate_alpha_color( mtx[row][column][0:3] ,hex_to_rgb("#222222"),mtx[row][column][3]))
+                else:
+                    aux_hex_color = rgb_to_hex(  calculate_alpha_color( mtx[row][column][0:3] ,hex_to_rgb("#333333"),mtx[row][column][3]))
+
+                canvas.itemconfig(button_number, fill= aux_hex_color,outline =aux_hex_color  )        
 
 
 
@@ -879,6 +893,7 @@ def pick_color(event=None):
 
 
 def fn_key_pressed(event):
+    global matrix
 
     if event.keysym == "f":
         fill_with_color_function_event()
@@ -894,8 +909,17 @@ def fn_key_pressed(event):
     if event.keysym == "z":
         #point_selection()
         backup_manager.load_backup_to_canvas()
+
+
+
         
-            
+    if event.keysym == "q":
+        pass
+
+    if event.keysym == "w":
+        pass
+ 
+
     
     if event.keysym == "Left":
         for button_number in canvas.find_all():
@@ -962,7 +986,7 @@ else:
 
 
 run = True
-app_name = 'Pyxel Art Studio'
+app_name = 'PixPynter'
 
 
 home = os.path.expanduser("~")  #file_path a Home
@@ -1258,11 +1282,29 @@ def fn_save_as_png():
                 draw.rectangle((x, y, x+sq_size-1, y+sq_size-1), fill=c)
 
         y += sq_size
-    file_name = call_save_as_file()
+    file_name = call_save_as_file("Save as a png file:",".png")
     if file_name != None:
 
         img.save(file_name)
 
+
+def save_file():
+    file_name = call_save_as_file("Save:",".pxpf")
+    if file_name != None:
+        # writing matrix to a file
+        with open(file_name, 'w') as file:
+            file.write(str(matrix))
+        alert(app_name,"Saved")
+
+def load_file():
+    global matrix
+    file_name = call_file_chooser(".pxpf")
+    if file_name != None:
+        with open(file_name,"r") as file:
+            matrix = literal_eval(file.read())
+
+        backup_manager.load_from_matrix(matrix)
+        alert(app_name,"Loaded")
 
 
 
@@ -1272,6 +1314,17 @@ btn_show_img.pack(pady=20)
 
 btn_save_as = ttk.Button(left_frame,text="Export as png",command=fn_save_as_png,bootstyle="secondary")
 btn_save_as.pack(pady=20)
+
+
+
+
+btn_save_to_file = ttk.Button(left_frame,text="Save",command=save_file,bootstyle="secondary")
+btn_save_to_file.pack(pady=20)
+
+
+btn_load_file = ttk.Button(left_frame,text="Open",command=load_file,bootstyle="secondary")
+btn_load_file.pack(pady=20)
+
 
 
 
