@@ -1,4 +1,4 @@
-# Pyxel
+# PixPynter
 pixel art tool written in python
 
 
