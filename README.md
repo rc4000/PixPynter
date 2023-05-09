@@ -13,4 +13,9 @@ We are open to suggestions and more developers who want to contribute to the pro
 
 
 
-![image](https://user-images.githubusercontent.com/86579760/229386104-25d66218-0eb0-461c-b973-a8fa3d8c5a81.png)
+![image](https://github.com/rc4000/PixPynter/assets/86579760/203ed61d-c7d6-4880-ae76-25dd327073af)
+
+
+
+
+
