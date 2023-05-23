@@ -1,940 +1,64 @@
+import random
 import math
 import re
-from tkinter import *
-import ttkbootstrap as ttk
-from ttkbootstrap.constants import *
-from functools import partial
-import darkdetect
-import threading
-import platform
 import time
 import os
-from PIL import Image, ImageDraw
-from ast import literal_eval
 
 
-#GUI SETTINGS-----------------------------------
+from gui import *
+from funcs_and_classes import *
 
-def on_window_close(event=None):
-    global run;run = False
 
 
-def set_title_theme(window,theme='Light'):
 
-    if OS == 'windows':
-        if theme == 'Dark':
-            value = 1
-        else:
-            value = 0
 
-        window.update()
-        DWMWA_USE_IMMERSIVE_DARK_MODE = 20
-        set_window_attribute = ct.windll.dwmapi.DwmSetWindowAttribute
-        get_parent = ct.windll.user32.GetParent
-        hwnd = get_parent(window.winfo_id())
-        rendering_policy = DWMWA_USE_IMMERSIVE_DARK_MODE
-        value = ct.c_int(value)
-        set_window_attribute(hwnd, rendering_policy, ct.byref(value), ct.sizeof(value))
 
-        window.update()
-def set_icon_to_window(window):
-    if(OS == "windows"):
-        window.iconbitmap(f'{runtime_path}/icon.ico')
-    elif(OS == "linux"):
-        icon_img = PhotoImage(file=f'{runtime_path}/icon.png')
-        window.tk.call('wm', 'iconphoto', window._w, icon_img)
+#Create the window
+root = ttk.Window(themename="")
+root.title(f"{app_name}-{version}")
+root.geometry("1000x900")
 
+#Create style 
+style = ttk.Style()
 
-class ThemeController:
-    def __init__(self,window):
-        self.window = window
+#Start Theme controller
+ThemeController(root,style) 
+root.update()
+root.state("zoomed")
 
-        if darkdetect.theme() == "Dark":
-            set_title_theme(self.window,theme="Dark")
-            style.theme_use("darkly")
-            self.last_theme = "Dark"
-        else:
-            style.theme_use("cosmo")
-            self.last_theme = "Light" 
 
-        threading.Thread(target=self.check_theme).start()
 
+#icon_fill_tool = PhotoImage(file=f'{runtime_path}/images/fill-drip-solid.png')
+#icon_brush_tool = PhotoImage(file=f'{runtime_path}/images/paint-brush-solid.png')
+#icon_color_picker_tool = PhotoImage(file=f'{runtime_path}/images/eye-dropper-solid.png')
 
-    def check_theme(self):
-        global run
-        while run:
-            time.sleep(0.05)
-            try:
-                if darkdetect.theme() == "Dark":
-                    if darkdetect.theme() != self.last_theme:
-                        set_title_theme(self.window,theme="Dark")
-                        style.theme_use("darkly")
-                        self.last_theme = "Dark"
-                else:
-                    if darkdetect.theme() != self.last_theme:
-                        set_title_theme(self.window,theme="Light")
-                        style.theme_use("cosmo")
-                        self.last_theme = "Light"
-            except:
-                run = False
 
-def center_tk_window(win,window_width,window_height):
-    screen_width = win.winfo_screenwidth()
-    screen_height = win.winfo_screenheight()
 
-    x_cordinate = int((screen_width/2) - (window_width/2))
-    y_cordinate = int((screen_height/2) - (window_height/2))
 
-    win.geometry(f"{window_width}x{window_height}+{x_cordinate}+{y_cordinate}")
-class VerticalScrolledFrame(ttk.Frame):
-    # Based on
-    # https://web.archive.org/web/20170514022131id_/http://tkinter.unpythonic.net/wiki/VerticalScrolledFrame
 
-    """A pure Tkinter scrollable frame that actually works!
-    * Use the 'interior' attribute to place widgets inside the scrollable frame.
-    * Construct and pack/place/grid normally.
-    * This frame only allows vertical scrolling.
-    """
-    def __init__(self, parent, *args, **kw):
-        ttk.Frame.__init__(self, parent, *args, **kw)
 
-        # Create a canvas object and a vertical scrollbar for scrolling it.
-        self.vscrollbar = ttk.Scrollbar(self, orient=VERTICAL,bootstyle=("round","ligth"))
-        self.vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
-        self.canvas = Canvas(self, bd=0, highlightthickness=0,
-                           yscrollcommand=self.vscrollbar.set)
-        self.canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
-        self.vscrollbar.config(command=self.canvas.yview)
+#UI VARIABLES:
+CURRENT_COLOR = color_class()
 
-        # Reset the view
-        self.canvas.xview_moveto(0)
-        self.canvas.yview_moveto(0)
 
-        # Create a frame inside the canvas which will be scrolled with it.
-        self.interior = interior = ttk.Frame(self.canvas)
-        self.interior_id = self.canvas.create_window(0, 0, window=self.interior,
-                                           anchor=NW)
+canvas_bg_dark_colors =["#222222","#333333"]
+canvas_bg_light_colors =["#a0a0a0","#aaaaaa"]
 
-        # Track changes to the canvas and frame width and sync them,
-        # also updating the scrollbar.
-        def _configure_interior(event=None):
-            # Update the scrollbars to match the size of the inner frame.
-            root.update()
-            self.size = (self.interior.winfo_reqwidth(), self.interior.winfo_reqheight())
-            self.canvas.config(scrollregion="0 0 %s %s" % self.size)
-            if self.interior.winfo_reqwidth() != self.canvas.winfo_width():
-                # Update the canvas's width to fit the inner frame.
-                self.canvas.config(width=self.interior.winfo_reqwidth())
-        self.interior.bind('<Configure>', _configure_interior)
 
-        def _configure_canvas(event=None):
-            root.update()
-            if self.interior.winfo_reqwidth() != self.canvas.winfo_width():
-                # Update the inner frame's width to fill the canvas.
-                self.canvas.itemconfigure(self.interior_id, width=self.canvas.winfo_width())
-        self.canvas.bind('<Configure>', _configure_canvas)
-def call_file_chooser(exten):
 
-    file_chooser_window = Toplevel()
-    file_chooser_window.focus()
-    file_chooser_window.title("Open file")
+size_of_color_palette = (373,219)
+color_label = StringVar()
+color_palette = PhotoImage(file=f'{runtime_path}/images/colors.png')
+target = PhotoImage(file=f'{runtime_path}/images/target.png')
 
-    center_tk_window(file_chooser_window,499,400)
-    set_title_theme(file_chooser_window,theme=darkdetect.theme())
-    file_chooser_window.geometry('500x400')
-    file_chooser_window.update()
+tool_type = "draw_pixel"
 
-    file = StringVar()
-    file_chooser_window.close_now = False
-    file_chooser_window.ready_to_return = False
 
+left_frame = ttk.LabelFrame(root,text="Pick a nice color!")
+left_frame.pack(side=LEFT,fill=Y,pady=15,padx=20)
 
-    top_frame = ttk.Frame(file_chooser_window)
-    top_frame.pack()
-
-   
-    lbl_location = Label(top_frame,text='Location: ')
-    lbl_location.pack(side=LEFT)
-
-
-    entry_address_bar = ttk.Entry(top_frame)
-    entry_address_bar.pack(ipadx=60,pady=5,side=LEFT)
-
-    btn_file_up = ttk.Button(top_frame,bootstyle="secondary",image=folder_up_icon)
-    btn_file_up.pack(side=LEFT,padx=5)
-
-
-    files_label_frame = ttk.LabelFrame(file_chooser_window,text='Open a file:')
-    files_label_frame.pack(fill=BOTH,expand=1,padx=50,pady=10)
-
-
-
-    files_frame= VerticalScrolledFrame(files_label_frame)
-    files_frame.pack(fill=BOTH,expand=1,padx=10,pady=10)
-    lisdir_frames = []
-
-    def load_files(path=None):
-
-        if path == None:
-            path = os.getcwd()
-        else:
-            if os.path.isdir(path):
-                os.chdir(path)
-
-        if OS == 'windows':
-            bf_slash = '\\'    
-        elif OS == 'linux':
-            bf_slash = '/'
-        else:
-            bf_slash = '/'
-
-        path = path.replace(f'{bf_slash}{bf_slash}',bf_slash)
-
-        entry_address_bar.delete(0,'end')
-        entry_address_bar.insert(0,path)
-
-        files_frame.canvas.yview_moveto(0)
-
-        btn_file_up.config(command=partial(load_files,os.path.abspath('..')))
-
-        for i in lisdir_frames:
-            i.destroy()
-
-
-        list_dir_names  = next(os.walk(path))[1]
-        list_file_names = next(os.walk(path))[2]
-
-
-        def get_file_and_close(file_name):
-            file.set(file_name)
-            file_chooser_window.close_now = True
-            file_chooser_window.ready_to_return = True
-
-
-        for i in list_dir_names + list_file_names:
-
-            button_frame = ttk.Frame(files_frame.interior)
-            button_frame.pack(fill=X,pady=2)
-
-            
-            button_frame.button = ttk.Button(button_frame,text='Open',state='disabled')
-            button_frame.button.pack(side=LEFT)
-
-
-            if os.path.isfile(f"{path}{bf_slash}{i}"):
-                icon_label = ttk.Label(button_frame,image=file_icon)
-            elif os.path.isdir(f"{path}{bf_slash}{i}"):
-                icon_label = ttk.Label(button_frame,image=folder_icon)
-                button_frame.button.config(state='normal',bootstyle="secondary",command=partial(load_files,f'{path}{bf_slash}{i}'))
-            icon_label.pack(side=LEFT,padx=10)
-
-            button_frame_label = ttk.Label(button_frame, text=f"{i}")
-            button_frame_label.pack(fill=X)
-
-            if i.endswith(f'{exten}'):
-                button_frame.button.config(state='normal',command=partial(get_file_and_close,f"{path}{bf_slash}{i}"))
-                icon_label.config(image=wanted_file_icon)
-                button_frame_label.config()
-
-            lisdir_frames.append(button_frame)
-
-
-    def adress_was_chaged(event=None):
-        path = entry_address_bar.get()
-        if os.path.isdir(path): 
-            load_files(entry_address_bar.get())
-
-
-    entry_address_bar.bind('<Return>',adress_was_chaged)
-
-    load_files()
-
-    file_chooser_window.grab_set()
-
-    #set_icon_to_window(file_chooser_window)
-
-    while not file_chooser_window.close_now and run:
-        try:
-            time.sleep(0.0001)
-            file_chooser_window.update()
-        except:
-            file_chooser_window.close_now = True
-    try:
-        file_chooser_window.destroy()
-    except:
-        pass
-
-    try:
-        file_chooser_window.grab_release() 
-    except:
-        pass
-
-    if file_chooser_window.ready_to_return:
-        return file.get()
-    else:
-        return None
-def call_save_as_file(title,exten):
-
-    file_chooser_window = Toplevel()
-    file_chooser_window.focus()
-    file_chooser_window.title(title)
-
-    center_tk_window(file_chooser_window,499,400)
-    set_title_theme(file_chooser_window,theme=darkdetect.theme())
-    file_chooser_window.geometry('500x400')
-    file_chooser_window.update()
-
-    file = StringVar()
-    file.set(exten)
-
-    file_chooser_window.close_now = False
-    file_chooser_window.ready_to_return = False
-
-
-    top_frame = ttk.Frame(file_chooser_window)
-    top_frame.pack()
-
-    bottom_frame = ttk.Frame(file_chooser_window)
-    bottom_frame.pack(side=BOTTOM)
-
-   
-    lbl_location = Label(top_frame,text='Location: ')
-    lbl_location.pack(side=LEFT)
-
-
-    entry_address_bar = ttk.Entry(top_frame)
-    entry_address_bar.pack(ipadx=60,pady=5,side=LEFT)
-
-    btn_file_up = ttk.Button(top_frame,bootstyle="secondary",image=folder_up_icon)
-    btn_file_up.pack(side=LEFT,padx=5)
-
-
-
-    files_label_frame = ttk.LabelFrame(file_chooser_window,text='Create new file in:')
-    files_label_frame.pack(fill=BOTH,expand=1,padx=50,pady=10)
-
-
-    lbl_save_as = Label(bottom_frame,text='Save as: ')
-    lbl_save_as.pack(side=LEFT)
-
-    entry_file_name = ttk.Entry(bottom_frame,textvariable=file)
-    entry_file_name.pack(ipadx=60,pady=5,side=LEFT)
-    entry_file_name.focus()
-
-    
-    #'Write the name of the new file.'
-
-
-    def ready_and_close(event=None):
-        if not file.get().endswith(exten) or file.get().replace(" ","").replace(exten,"") == "":
-            alert(app_name,f'{exten.upper()} files must have a name\n and end with the extension {exten}')
-        else:
-            file_chooser_window.ready_to_return =True
-            file_chooser_window.close_now = True
-
-    btn_save = ttk.Button(bottom_frame,text=' Save ',command=ready_and_close)
-    btn_save.pack(side=LEFT,padx=5)
-
- 
-    files_frame= VerticalScrolledFrame(files_label_frame)
-    files_frame.pack(fill=BOTH,expand=1,padx=10,pady=10)
-    lisdir_frames = []
-
-    def load_files(path=None):
-
-        if path == None:
-            path = os.getcwd()
-        else: 
-            if os.path.isdir(path):
-                os.chdir(path)
-
-        if OS == 'windows':
-            bf_slash = '\\'    
-        elif OS == 'linux':
-            bf_slash = '/'
-        else:
-            bf_slash = '/'
-
-        path = path.replace(f'{bf_slash}{bf_slash}',bf_slash)
-
-        entry_address_bar.delete(0,'end')
-        entry_address_bar.insert(0,path)
-
-        files_frame.canvas.yview_moveto(0)
-
-        btn_file_up.config(command=partial(load_files,os.path.abspath('..')))
-
-        for i in lisdir_frames:
-            i.destroy()
-
-
-        list_dir_names  = next(os.walk(path))[1]
-
-
-        for i in list_dir_names:
-
-            button_frame = ttk.Frame(files_frame.interior)
-            button_frame.pack(fill=X,pady=2)
-
-
-            if os.path.isdir(f"{path}{bf_slash}{i}"):
-                icon_label = ttk.Label(button_frame,image=folder_icon)
-
-                button_frame.button = ttk.Button(button_frame,text='Open',bootstyle="secondary",command=partial(load_files,f'{path}{bf_slash}{i}'))
-                button_frame.button.pack(side=LEFT)
-
-                
-            icon_label.pack(side=LEFT,padx=10)
-
-            button_frame_label = ttk.Label(button_frame, text=f"{i}")
-            button_frame_label.pack(fill=X)
-
-
-            lisdir_frames.append(button_frame)
-
-
-    def adress_was_chaged(event=None):
-        path = entry_address_bar.get()
-        if os.path.isdir(path):
-            load_files(entry_address_bar.get())
-
-
-    entry_address_bar.bind('<Return>',adress_was_chaged)
-    entry_file_name.bind('<Return>',ready_and_close)
-
-
-    load_files()
-
-    file_chooser_window.grab_set()
-
-    while not file_chooser_window.close_now and run:
-        try:
-            time.sleep(0.0001)
-            file_chooser_window.update()
-        except:
-            file_chooser_window.close_now = True
-    try:
-        file_chooser_window.destroy()
-    except:
-        pass
-
-    try:
-        file_chooser_window.grab_release() 
-    except:
-        pass
-
-
-    if file_chooser_window.ready_to_return:
-        return file.get()
-    else: return None
-def askyesno(title,text):
-    window = Toplevel()
-    window.resizable(0,0)
-    center_tk_window(window,299,80)
-    set_title_theme(window,theme=darkdetect.theme())
-    window.geometry('300x80')
-    
-    window.title(title)
-    
-    window.res = 0
-
-    text_label = Label(window,text=text,font= (font,10))
-    text_label.pack()
-    button_frame = Frame(window)
-    button_frame.pack(pady=10)
-
-    def f_yes_and_close():
-        window.res = 1
-        window.close_now = True
-    def f_no_and_close():
-        window.res = 0
-        window.close_now = True
-
-    btnYes = ttk.Button(button_frame,text='    yes    ',command= f_yes_and_close)
-    btnYes.pack(side=LEFT,padx=10)
-    btnNo = ttk.Button(button_frame,text='    no    ',command= f_no_and_close)
-    btnNo.pack(side=LEFT,padx=10)
-    btnYes.focus()
-
-    window.close_now = False
-
-
-    window.grab_set()
-
-    while not window.close_now:
-        try:
-            time.sleep(0.0001)
-            window.update()
-        except:
-            window.close_now = True
-    try:
-        window.destroy()
-    except:
-        pass
-
-    try:
-        window.grab_release() 
-    except:
-        pass
-
-    return window.res
-def alert(title,text,fixed_size=True):
-    window = Toplevel()
-    if fixed_size:
-        window.resizable(0,0)
-        center_tk_window(window,299,100)
-    set_title_theme(window,theme=darkdetect.theme())
-    if fixed_size:
-        window.geometry('300x100')
-    
-    window.title(title)
-
-    text_label = Label(window,text=text)
-    text_label.pack(pady=10)
-    button_frame = Frame(window)
-    button_frame.pack(pady=5)
-
-    def f_okay():
-        window.close_now = True
-  
-    btnOk = ttk.Button(button_frame,text='    Ok    ',command= f_okay)
-    btnOk.pack(side=LEFT,padx=10)
-    btnOk.focus()
-
-    window.close_now = False
-
-    window.grab_set()
-
-    while not window.close_now:
-        try:
-            time.sleep(0.0001)
-            window.update()
-        except:
-            window.close_now = True
-    try:
-        window.destroy()
-    except:
-        pass
-
-    try:
-        window.grab_release() 
-    except:
-        pass
-
-
-
-
-
-#---------------------------------------------------
-
-
-
-
-
-
-
-
-#Color functions
-def hex_to_rgb(value):
-    value = value.lstrip('#')
-    lv = len(value)
-    return tuple(int(value[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
-
-
-def rgb_to_hex(rgb):
-    return '#%02x%02x%02x' % rgb
-
-
-def calculate_alpha_color(color,bg_color,alpha):
-    alpha = alpha/255
-    red = color[0] * alpha + bg_color[0] * 1 * (1 - alpha)
-    green = color[1] * alpha + bg_color[1] * 1 * (1 - alpha)
-    blue = color[2] * alpha + bg_color[2] * 1 * (1 - alpha)
-    return (int(red),int(green),int(blue))
-
-
-
-class color_class:
-    def __init__(self):
-        self._rgba_ = [255,255,255,255]
-
-    def set(self,color,color_type="RGBA"):
-        if color_type == "hex":
-            aux_rgb_color = hex_to_rgb(color)
-            self._rgba_ = [aux_rgb_color[0], aux_rgb_color[1], aux_rgb_color[2],self._rgba_[3],]
-        elif color_type == "rgb":
-            self._rgba_[0]=color[0]
-            self._rgba_[1]=color[1]
-            self._rgba_[2]=color[2]
-        else:
-            self._rgba_[0]=color[0]
-            self._rgba_[1]=color[1]
-            self._rgba_[2]=color[2] 
-            self._rgba_[3]=color[3]   
-
-    def setRed(self,red):
-        self._rgba_[0] = red
-
-    def getRed(self):
-        return self._rgba_[0]
-
-    def setGreen(self,green):
-        self._rgba_[1] = green
-
-    def getGreen(self):
-        return self._rgba_[1]
-
-    def setBlue(self,blue):
-        self._rgba_[2] = blue
-
-    def getBlue(self):
-        return self._rgba_[2]
-
-    def set255Alpha(self,alpha):
-        self._rgba_[3] = alpha
-
-    def get255Alpha(self):
-        return self._rgba_[3]
-
-    def toHex(self):
-            return rgb_to_hex((self._rgba_[0],self._rgba_[1],self._rgba_[2]))
-    def toRgb(self):
-            return (self._rgba_[0],self._rgba_[1],self._rgba_[2])
-    def toRgba(self):
-            return (self._rgba_[0],self._rgba_[1],self._rgba_[2],self._rgba_[3])
-    def get255alpha(self):
-            return self._rgba_[3]
-    
-
-
-
-'''
-
-   rows = 0 
-    columns = 0 
-    for button_number in amount_rows*amount_columns:
-        if columns != amount_columns:
-            columns += 1
-        else:
-            columns = 0
-            rows += 1
-'''
-
-
-
-class class_backup_manager:
-    def __init__(self):
-        self.backups = []
-        self.backup_current_index = -1
-    def create_backup(self):
-        print("BUCKUP ")
-        if self.backup_current_index<9:
-            self.backup_current_index += 1
-        if len(self.backups) < 10:
-            aux_matrix = []
-            for row in range(amount_rows):
-                aux_matrix.append(matrix[row].copy())
-            self.backups.append(aux_matrix)
-        else:
-            aux_matrix = []
-            for row in range(amount_rows):
-                aux_matrix.append(matrix[row].copy())
-            self.backups.append(aux_matrix)
-            del self.backups[0]
-    def load_backup_to_canvas(self):
-        #print(self.backup_current_index)
-        mtx = self.backups[self.backup_current_index]
-        print(self.backup_current_index)
-
-        global matrix; matrix = mtx
-
-        if self.backup_current_index > 0:
-            del self.backups[self.backup_current_index]
-
-        if self.backup_current_index >0:
-            self.backup_current_index = self.backup_current_index -1
-        button_number = 0
-        for row in range(amount_rows):
-            for column in range(amount_columns):
-                button_number += 1
-
-                if not button_number % 2 == 0:
-                    aux_hex_color = rgb_to_hex(  calculate_alpha_color( mtx[row][column][0:3] ,hex_to_rgb("#222222"),mtx[row][column][3]))
-                else:
-                    aux_hex_color = rgb_to_hex(  calculate_alpha_color( mtx[row][column][0:3] ,hex_to_rgb("#333333"),mtx[row][column][3]))
-
-                canvas.itemconfig(button_number, fill= aux_hex_color,outline =aux_hex_color  )
-    def load_from_matrix(self,mtx):
-        button_number = 0
-        for row in range(amount_rows):
-            for column in range(amount_columns):
-                button_number += 1
-
-                if not button_number % 2 == 0:
-                    aux_hex_color = rgb_to_hex(  calculate_alpha_color( mtx[row][column][0:3] ,hex_to_rgb("#222222"),mtx[row][column][3]))
-                else:
-                    aux_hex_color = rgb_to_hex(  calculate_alpha_color( mtx[row][column][0:3] ,hex_to_rgb("#333333"),mtx[row][column][3]))
-
-                canvas.itemconfig(button_number, fill= aux_hex_color,outline =aux_hex_color  )        
-
-
-
-
-
-
-
-
-
-
-
-def update_current_color_preview():
-    color_label.set( f"{CURRENT_COLOR.toHex()}\nrgb{CURRENT_COLOR.toRgb() }" )
-    aux_rgb_color = CURRENT_COLOR.toRgb()
-    if CURRENT_COLOR.getRed() + CURRENT_COLOR.getGreen() + CURRENT_COLOR.getBlue() > 200:
-        color_select["fg"] = "#000"
-    else:
-        color_select["fg"] = "#fff"
-    color_select.config(bg=CURRENT_COLOR.toHex())
-
-
-
-
-
-def colors_on_mouse_drag(event):
-    """Mouse movement callback"""
-    # get mouse coordinates
-    x = event.x
-    y = event.y
-    # clear the canvas_of_colors and redraw
-    canvas_of_colors.delete("all")
-    canvas_of_colors.create_image(size_of_color_palette[0]/2, size_of_color_palette[1]/2, image=color_palette)
-    canvas_of_colors.create_image(x, y, image=target)
-    
-    if x < size_of_color_palette[0] and x >0 and y < size_of_color_palette[1] and y >0: 
-        rgb_color = color_palette.get(x, y)
-        CURRENT_COLOR.set(rgb_color,"rgb")
-        update_current_color_preview()
-        scl_red.set(CURRENT_COLOR.getRed())
-        scl_green.set(CURRENT_COLOR.getGreen())
-        scl_blue.set(CURRENT_COLOR.getBlue())
-
-
-def fill_with_color(row,column):
-    sqs_to_fill = []
-    sqs_to_fill.append((row,column))
-
-    old_color = matrix[row-1][column-1]
-
-    if old_color == CURRENT_COLOR.toRgba():
-        return
-
-    while(len(sqs_to_fill) != 0):
-        row = sqs_to_fill[0][0]
-        column = sqs_to_fill[0][1]
-        del sqs_to_fill[0]
-
-        button_number = (row -1)*amount_columns + column
-
-        if row <= amount_rows and row >0 and column <= amount_columns and column >0:
-            if not ( old_color[3]==0 and CURRENT_COLOR.get255Alpha() == 0):
-                if  matrix[row-1][column-1] == old_color or (matrix[row-1][column-1][3] == 0 and old_color[3] == 0)  :
-                    if re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', CURRENT_COLOR.toHex()) and len(CURRENT_COLOR.toHex()) == 7:
-                        if CURRENT_COLOR.get255Alpha() != 0:
-                            matrix[row-1][column-1] =  CURRENT_COLOR.toRgba()
-                        else:
-                            matrix[row-1][column-1] = (0,0,0,0)
-                        if not button_number % 2 == 0:
-                            aux_hex_color = rgb_to_hex(  calculate_alpha_color( CURRENT_COLOR.toRgb() ,hex_to_rgb("#222222"),CURRENT_COLOR.get255Alpha()))
-                        else:
-                            aux_hex_color = rgb_to_hex(  calculate_alpha_color( CURRENT_COLOR.toRgb() ,hex_to_rgb("#333333"),CURRENT_COLOR.get255Alpha()))
-                        canvas.itemconfig(button_number, fill= aux_hex_color,outline =aux_hex_color  )
-                        sqs_to_fill.append((row,column-1))
-                        sqs_to_fill.append((row,column+1))
-                        sqs_to_fill.append((row-1,column))
-                        sqs_to_fill.append((row+1,column))
-                    else:
-                        alert("Error","please write a valid hex color.")
-
-
-
-def fill_with_color_function_event(event=None):
-    button_number = (row -1)*amount_columns + column
-    
-    if row <= amount_rows and row >0 and column <= amount_columns and column >0: 
-        if re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', CURRENT_COLOR.toHex()) and len(CURRENT_COLOR.toHex()) == 7:
-            fill_with_color(row,column)
-        else:
-            alert("Error","please write a valid hex color.")
-
-
-
-
-
-
-
-def fill_with_color_even_sqs(row,column):
-    sqs_to_fill = []
-    sqs_to_fill.append((row,column))
-
-    old_color = matrix[row-1][column-1]
-
-    if old_color == CURRENT_COLOR.toRgba():
-        return
-
-    while(len(sqs_to_fill) != 0):
-        row = sqs_to_fill[0][0]
-        column = sqs_to_fill[0][1]
-        del sqs_to_fill[0]
-
-        button_number = (row -1)*amount_columns + column
-
-        if row <= amount_rows and row >0 and column <= amount_columns and column >0:
-            if not ( old_color[3]==0 and CURRENT_COLOR.get255Alpha() == 0):
-                if  matrix[row-1][column-1] == old_color or (matrix[row-1][column-1][3] == 0 and old_color[3] == 0)  :
-                    if re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', CURRENT_COLOR.toHex()) and len(CURRENT_COLOR.toHex()) == 7:
-                        aux_bn = (row -1)*amount_columns + column
-
-                        if aux_bn % 2 == 0:
-                            if CURRENT_COLOR.get255Alpha() != 0:
-                                matrix[row-1][column-1] =  CURRENT_COLOR.toRgba()
-                            else:
-                                matrix[row-1][column-1] = (0,0,0,0)
-                            if not button_number % 2 == 0:
-                                aux_hex_color = rgb_to_hex(  calculate_alpha_color( CURRENT_COLOR.toRgb() ,hex_to_rgb("#222222"),CURRENT_COLOR.get255Alpha()))
-                            else:
-                                aux_hex_color = rgb_to_hex(  calculate_alpha_color( CURRENT_COLOR.toRgb() ,hex_to_rgb("#333333"),CURRENT_COLOR.get255Alpha()))
-                            canvas.itemconfig(button_number, fill= aux_hex_color,outline =aux_hex_color  )
-                        sqs_to_fill.append((row,column-1))
-                        sqs_to_fill.append((row,column+1))
-                        sqs_to_fill.append((row-1,column))
-                        sqs_to_fill.append((row+1,column))
-                    else:
-                        alert("Error","please write a valid hex color.")
-
-
-
-def fill_with_color_even_sqs_function_event(event=None):
-    button_number = (row -1)*amount_columns + column
-    
-    if row <= amount_rows and row >0 and column <= amount_columns and column >0: 
-        if re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', CURRENT_COLOR.toHex()) and len(CURRENT_COLOR.toHex()) == 7:
-            fill_with_color_even_sqs(row,column)
-        else:
-            alert("Error","please write a valid hex color.")
-
-
-
-
-def point_selection(event=None):
-    if row <= amount_rows and row >0 and column <= amount_columns and column >0: 
-
-        for i in range(1,amount_rows*amount_columns):
-            if canvas.itemcget(i, "fill") == "#000" and canvas.itemcget(i, "outline") == "#fff":
-                pass
-
-        button_number = (row -1)*amount_columns + column
-        canvas.itemconfig(button_number, fill= "#000",outline="#fff"  )
-  
-
-
-
-
-def clicked_canvas_button1(event):
-    update_mouse_position(event)
-    mouse_position.set(f"x:{column} y:{row}")
-    if row <= amount_rows and row >0 and column <= amount_columns and column >0: 
-
-        if re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$',CURRENT_COLOR.toHex()) and len(CURRENT_COLOR.toHex()) == 7:
-            matrix[row-1][column-1] =  CURRENT_COLOR.toRgba()
-            # n = (f-1)20 + c
-            button_number = (row -1)*amount_columns + column
-            if not button_number % 2 == 0:
-                aux_hex_color = rgb_to_hex(  calculate_alpha_color( CURRENT_COLOR.toRgb() ,hex_to_rgb("#222222"),CURRENT_COLOR.get255Alpha()  ) )
-            else:
-                aux_hex_color = rgb_to_hex(  calculate_alpha_color( CURRENT_COLOR.toRgb() ,hex_to_rgb("#333333"),CURRENT_COLOR.get255Alpha()  ) )
-            canvas.itemconfig(button_number, fill= aux_hex_color,outline=aux_hex_color  )
-        else:
-            alert("Error","please write a valid hex color.")
-
-
-def clicked_canvas_button3(event):
-    update_mouse_position(event)
-    mouse_position.set(f"x:{column} y:{row}")
-
-    button_number = (row -1)*amount_columns + column
-    
-
-    if row <= amount_rows and row >0 and column <= amount_columns and column >0: 
-        matrix[row-1][column-1] =  (0,0,0,0)
-        if not button_number % 2 == 0:
-            canvas.itemconfig(button_number, fill="#222",outline="#222")
-        else:
-            canvas.itemconfig(button_number, fill="#333",outline="#333")
- 
-    
-def update_mouse_position(event=None):
-    global column;column = math.ceil(event.x/sq_size)
-    global row;row       = math.ceil(event.y/sq_size)
-    global button_number
-    mouse_position.set(f"x:{column} y:{row}")
-
-
-def pick_color(event=None):
-    if matrix[row-1][column-1][3]>0:
-        CURRENT_COLOR.set(matrix[row-1][column-1])
-        update_current_color_preview()
-        scl_alpha.set(CURRENT_COLOR.get255Alpha() )
-        lbl_alpha_value.config(text=CURRENT_COLOR.get255Alpha() )
-        scl_red.set(CURRENT_COLOR.getRed())
-        scl_green.set(CURRENT_COLOR.getGreen())
-        scl_blue.set(CURRENT_COLOR.getBlue())
-
-
-
-
-def fn_key_pressed(event):
-    global matrix
-
-    if event.keysym == "f":
-        fill_with_color_function_event()
-    if event.keysym == "e":
-        fill_with_color_even_sqs_function_event()
-
-    if event.keysym == "p":
-        pick_color()
-
-    if event.keysym == "s":
-        backup_manager.create_backup()
-
-    if event.keysym == "z":
-        #point_selection()
-        backup_manager.load_backup_to_canvas()
-
-
-
-        
-    if event.keysym == "q":
-        pass
-
-    if event.keysym == "w":
-        pass
- 
-
-    
-    if event.keysym == "Left":
-        for button_number in canvas.find_all():
-            canvas.move(button_number,50,0)
-    elif event.keysym == "Right":
-        for button_number in canvas.find_all():
-            canvas.move(button_number,-50,0)    
-    elif event.keysym == "Up":
-        for button_number in canvas.find_all():
-            canvas.move(button_number,0,50)    
-    elif event.keysym == "Down":
-        for button_number in canvas.find_all():
-            canvas.move(button_number,0,-50)    
-    root.update()
-
+colors_frame = Frame(left_frame)
+colors_frame.pack()
 
 def fn_darker_color():
     var_new_rgb_color = []
@@ -968,110 +92,45 @@ def fn_brighter_color():
     scl_green.set(CURRENT_COLOR.getGreen())
     scl_blue.set(CURRENT_COLOR.getBlue())
 
-
-
-
-
-
-
-
-
-OS = platform.platform().split("-")[0].lower()
-
-if OS == 'windows':
-    import ctypes as ct
-    font = 'Comic Sans MS'
-else:
-    font = 'Areal'
-
-
-run = True
-app_name = 'PixPynter'
-
-
-home = os.path.expanduser("~")  #file_path a Home
-
-runtime_path = f"{os.path.dirname(os.path.realpath(__file__))}/appdata" #file_path en donde se descomprime y ejecuta 
-app_folder_path = f"{home}/.{app_name}-config"                            #file_path en donde se guarda las cosas de la app (en la carpeta del usuario)
-
-
-
-
-#Create the window
-root = ttk.Window(themename="darkly")
-root.title(app_name)
-root.geometry("1000x900")
-
-style = ttk.Style()
-
-
-
-#Start Theme controller
-ThemeController(root)
-root.update()
-root.state("zoomed")
-
-
-
-#load icons
-file_icon = PhotoImage(file=f'{runtime_path}/images/file.png')
-wanted_file_icon = PhotoImage(file=f'{runtime_path}/images/wanted_file.png')
-folder_icon = PhotoImage(file=f'{runtime_path}/images/folder.png')
-folder_up_icon = PhotoImage(file=f'{runtime_path}/images/folder_up.png')
-
-
-
-
-
-left_frame = ttk.LabelFrame(text="Pick a color!")
-left_frame.pack(side=LEFT,fill=Y,pady=30,padx=30)
-
-colors_frame = Frame(left_frame)
-colors_frame.pack()
-
-
 brightness_frame = ttk.LabelFrame(left_frame,text="Brightness")
-brightness_frame.pack(fill=X,padx=20,pady=10)
+brightness_frame.pack(padx=20,pady=10,fill=X)
 
 ttk.Button(brightness_frame,text="Darker",command=fn_darker_color,bootstyle="secondary").pack(side=LEFT,fill=X,expand=1,padx=5,pady=5)
 ttk.Button(brightness_frame,text="Brighter",command=fn_brighter_color,bootstyle="secondary").pack(side=LEFT,fill=X,expand=1,padx=5,pady=5)
 
+def colors_on_mouse_drag(event):
+    """Mouse movement callback"""
+    # get mouse coordinates
+    x = event.x
+    y = event.y
+    # clear the canvas_of_colors and redraw
+    canvas_of_colors.delete("all")
+    canvas_of_colors.create_image(size_of_color_palette[0]/2, size_of_color_palette[1]/2, image=color_palette)
+    canvas_of_colors.create_image(x, y, image=target)
+    
+    if x < size_of_color_palette[0] and x >0 and y < size_of_color_palette[1] and y >0: 
+        rgb_color = color_palette.get(x, y)
+        CURRENT_COLOR.set(rgb_color,"rgb")
+        update_current_color_preview()
+        scl_red.set(CURRENT_COLOR.getRed())
+        scl_green.set(CURRENT_COLOR.getGreen())
+        scl_blue.set(CURRENT_COLOR.getBlue())
 
 
-CURRENT_COLOR = color_class()
 
-
-
-
-GLOBAL_BG_COLOR = StringVar()
-GLOBAL_BG_COLOR.set("#222222")
-
-size_of_color_palette = (509,298)
-        
-color_label = StringVar()
 color_label.set('#ffffff\nrgb(255,255,255)')
 color_select = Label(colors_frame, textvariable=color_label, bg='white',fg="black", width=20, font=('Arial', 20, 'bold'))
-color_select.pack( fill=X,pady=10,padx=20)    
-canvas_of_colors = Canvas(colors_frame, height=298, width=509,cursor="crosshair",bg="#222",relief='ridge',bd=0,highlightthickness=0)
+color_select.pack(pady=10,padx=23,fill=X)    
+canvas_of_colors = Canvas(colors_frame, height=220, width=380,cursor="crosshair",bg="#222",relief='ridge',bd=0,highlightthickness=0)
 canvas_of_colors.pack(side=LEFT,padx=20)
 canvas_of_colors.bind("<B1-Motion>", colors_on_mouse_drag)
 canvas_of_colors.bind("<Button-1>", colors_on_mouse_drag)
 
-
-
-color_palette = PhotoImage(file=f'{runtime_path}/images/colors.png')
-target = PhotoImage(file=f'{runtime_path}/images/target.png')
-
 canvas_of_colors.create_image(size_of_color_palette[0]/2, size_of_color_palette[1]/2, image=color_palette)
 canvas_of_colors.create_image(50, 10, image=target)
 
-
-
 #hex_color_entry= ttk.Entry(left_frame,textvariable=GLOBAL_COLOR)
 #hex_color_entry.pack(fill=X,pady=10,padx=20)
-
-
-
 
 red_control_frame = ttk.LabelFrame(left_frame,text="Red:")
 red_control_frame.pack(fill=X,padx=20)
@@ -1082,10 +141,8 @@ green_control_frame.pack(fill=X,padx=20)
 blue_control_frame = ttk.LabelFrame(left_frame,text="Blue:")
 blue_control_frame.pack(fill=X,padx=20)
 
-
 alpha_control_frame = ttk.LabelFrame(left_frame,text="alpha:")
 alpha_control_frame.pack(fill=X,padx=20)
-
 
 lbl_red_value = Label(red_control_frame,text="")
 lbl_red_value.pack(fill=X)
@@ -1099,8 +156,14 @@ lbl_blue_value.pack(fill=X)
 lbl_alpha_value = Label(alpha_control_frame,text="")
 lbl_alpha_value.pack(fill=X)
 
-
-
+def update_current_color_preview():
+    color_label.set( f"{CURRENT_COLOR.toHex()}\nrgb{CURRENT_COLOR.toRgb() }" )
+    aux_rgb_color = CURRENT_COLOR.toRgb()
+    if CURRENT_COLOR.getRed() + CURRENT_COLOR.getGreen() + CURRENT_COLOR.getBlue() > 200:
+        color_select["fg"] = "#000"
+    else:
+        color_select["fg"] = "#fff"
+    color_select.config(bg=CURRENT_COLOR.toHex())
 
 def change_red(event=None):
     CURRENT_COLOR.setRed(int(scl_red.get())) 
@@ -1126,11 +189,9 @@ def change_alpha(event=None):
     else:
         lbl_alpha_value.config(text=f"{CURRENT_COLOR.get255Alpha()} #Now you can remove pixels")
 
-
 scl_red = ttk.Scale(red_control_frame, from_=0, to=255, orient=HORIZONTAL, command=change_red)
 scl_red.set(255)
 scl_red.pack(fill=X)
-
 
 scl_green = ttk.Scale(green_control_frame, from_=0, to=255, orient=HORIZONTAL, command=change_green)
 scl_green.set(255)
@@ -1140,239 +201,701 @@ scl_blue = ttk.Scale(blue_control_frame, from_=0, to=255, orient=HORIZONTAL, com
 scl_blue.set(255)
 scl_blue.pack(fill=X)
 
-
 scl_alpha = ttk.Scale(alpha_control_frame, from_=0, to=255, orient=HORIZONTAL, command=change_alpha)
 scl_alpha.set(255)
 scl_alpha.pack(fill=X)
 
 
 
+def fn_key_pressed(event):
 
+    global tool_type
 
+    key = event.keysym.lower()
 
+    if key == "s":
+        tool_type ="selection_tool"
 
-mouse_position = StringVar()
-mouse_position.set('x:?   y:?')
-lbl_mouse_position = Label(textvariable=mouse_position)
-lbl_mouse_position.pack()
 
+    if key == "1" or key == "d":
+        tool_type = 'draw_pixel'
 
+    if key == "2" or key == "f":
+        tool_type = "fill_canvas_with_color"
 
+    if key == "3" or key == "p":
+        tool_type = "pick_color"
 
-frame=Frame(root,width=300,height=300)
-frame.pack(expand=True, fill=BOTH) 
-canvas=ttk.Canvas(frame,bg='#000000',width=1000, height=1000,cursor="crosshair")
-canvas.pack(side=LEFT,expand=True,fill=BOTH)
+    if key == "z":
+        pass
+        #backup_manager.load_backup_to_canvas()
 
+    if key == "x":
+        root.destroy()
 
-amount_rows=65
-amount_columns=85
-sq_size =15
-row = 1
-column =1
+    update_tool_button_colors()
 
-matrix = []
 
-backup_manager = class_backup_manager()
+#WORKING ON
 
 
+def update_tool_button_colors():
+    if tool_type == "draw_pixel":
+        button_set_tool_draw_pixel.config(bootstyle="primary")
+    else:
+        button_set_tool_draw_pixel.config(bootstyle="secondary")
 
-#Create matrix for the image
-for f in range(amount_rows):
-    matrix = matrix + [[]]
+    if tool_type == "fill_canvas_with_color":
+        button_set_tool_fill_canvas_with_color.config(bootstyle="primary")
+    else:
+        button_set_tool_fill_canvas_with_color.config(bootstyle="secondary")
 
-for c in matrix:
-    for f in range(amount_columns):
-        c.append((0,0,0,0))
+    if tool_type == "pick_color":
+        button_set_tool_pick_color.config(bootstyle="primary")
+    else:
+        button_set_tool_pick_color.config(bootstyle="secondary")
 
-x = 0
-y = 0
+    if tool_type == "selection_tool":
+        button_set_tool_selection_tool.config(bootstyle="primary")
+    else:
+        button_set_tool_selection_tool.config(bootstyle="secondary")
 
 
-#Create the canvas for drawing 
-even_sq = 0
-for f in range(amount_rows):
-    x = -sq_size
-    for c in range(amount_columns):
-        x += sq_size
-        even_sq = not even_sq
-        if even_sq:
-            button_number = canvas.create_rectangle(x, y, x+sq_size-1,y+sq_size-1, fill="#222", outline = '#222')
-        else:
-            button_number = canvas.create_rectangle(x, y, x+sq_size-1,y+sq_size-1, fill="#333", outline = '#333')
-    y += sq_size
 
 
-def show_image():
-    img = Image.new("RGBA", (len(matrix[1])*sq_size+2, len(matrix)*sq_size +2))
-    draw = ImageDraw.Draw(img)
-    x = 0
-    y = 0
+def set_tool_type_to_draw_pixel():global tool_type;tool_type = "draw_pixel";update_tool_button_colors()
+def set_tool_type_to_fill_canvas_with_color():global tool_type;tool_type = "fill_canvas_with_color";update_tool_button_colors()
+def set_tool_type_to_pick_color():global tool_type;tool_type = "pick_color";update_tool_button_colors()
+def set_tool_type_to_selection_tool():global tool_type;tool_type = "selection_tool";update_tool_button_colors()
 
-    #---------------
-    '''  This block should be able to crop the image automatically. (Not ready)
-    
-    aux_matrix = []
-    for f in matrix:
-        row_transparente = True
-        for c in f:
-            if c[3] > 0:
-                row_transparente = False
-        if not row_transparente:
-            aux_matrix.append(f)
+def image_preview():
+    for i in tab_with_canvas_list:
+        if i.is_canvas_active():
+            i.image_preview()
 
-    aux_aux_matrix= []
+def export_as_png_file():
+    for i in tab_with_canvas_list:
+        if i.is_canvas_active():
+            i.export_as_png_file()
 
+def save_to_file():
+    for i in tab_with_canvas_list:
+        if i.is_canvas_active():
+            i.save_to_file()
 
 
+tools_frame = ttk.LabelFrame(left_frame,text="Here are your tools!")
+tools_frame.pack(fill=BOTH,padx=20,pady=20)
 
-    
+button_set_tool_draw_pixel = ttk.Button(tools_frame,text="draw_pixel",command=set_tool_type_to_draw_pixel)
+button_set_tool_draw_pixel.grid(row = 0, column = 0, padx = 5,pady = 5)
 
-    for f in range(len(aux_matrix[0])):
-        aux_aux_matrix = aux_aux_matrix + [[]]
+button_set_tool_fill_canvas_with_color = ttk.Button(tools_frame,text="fill_canvas_with_color",command=set_tool_type_to_fill_canvas_with_color)
+button_set_tool_fill_canvas_with_color.grid(row = 0, column = 1, padx = 20,pady = 5)
 
-    for f in aux_matrix:
-        for c in f:
 
-    for c in matrix:
-        for f in range(amount_columns):
-            c.append((0,0,0,0))
+button_set_tool_pick_color = ttk.Button(tools_frame,text="pick_color", command=set_tool_type_to_pick_color)
+button_set_tool_pick_color.grid(row = 0, column = 2, padx = 5,pady = 5)
 
-    
+button_set_tool_selection_tool  = ttk.Button(tools_frame,text="selection_tool", command=set_tool_type_to_selection_tool)
+button_set_tool_selection_tool.grid(row = 2, column = 0, padx = 5,pady = 5)
 
 
-    
-    
-    column_transparente = True
-    for c in range(len(aux_matrix[0])-1):
-        for f in range(len(aux_matrix)-1):
-            print(f"f:{f}")
-            print(f"c:{c}")
-            print(aux_matrix[f])
-            if aux_matrix[f][c][3] > 0 :
-                column_transparente = False
-        if not column_transparente:
-            for f in range(len(aux_matrix)-1):
-                del aux_matrix[f][c]
-    '''
-    #-----------------
+button_image_preview = ttk.Button(left_frame,bootstyle="secondary",text="image_preview", command=image_preview)
+button_image_preview.pack(fill="x", padx = 20,pady = 5)
 
-    for f in matrix:
-        x = -sq_size
-        for c in f:
-            x += sq_size
-            if c[3] > 0:
-                draw.rectangle((x, y, x+sq_size-1, y+sq_size-1), fill=c)
-        y += sq_size
 
-    img.show()
+button_export_as_png_file = ttk.Button(left_frame,bootstyle="secondary",text="export_as_png_file", command=export_as_png_file)
+button_export_as_png_file.pack(fill="x", padx = 20,pady = 5)
 
 
-def fn_save_as_png():
-    img = Image.new("RGBA", (len(matrix[1])*sq_size+2, len(matrix)*sq_size +2))
-    draw = ImageDraw.Draw(img)
-    x = 0
-    y = 0
+button_save_to_file = ttk.Button(left_frame,bootstyle="secondary",text="save_to_file", command=save_to_file)
+button_save_to_file.pack(fill="x", padx = 20,pady = 5)
 
-    for f in matrix:
-        x = -sq_size
-        for c in f:
-            x += sq_size
-            if c[3] > 0:
-                draw.rectangle((x, y, x+sq_size-1, y+sq_size-1), fill=c)
 
-        y += sq_size
-    file_name = call_save_as_file("Save as a png file:",".png")
-    if file_name != None:
 
-        img.save(file_name)
 
+update_tool_button_colors()
 
-def save_file():
-    file_name = call_save_as_file("Save:",".pxpf")
-    if file_name != None:
-        # writing matrix to a file
-        with open(file_name, 'w') as file:
-            file.write(str(matrix))
-        alert(app_name,"Saved")
 
-def load_file():
-    global matrix
-    file_name = call_file_chooser(".pxpf")
-    if file_name != None:
-        with open(file_name,"r") as file:
-            matrix = literal_eval(file.read())
-
-        backup_manager.load_from_matrix(matrix)
-        alert(app_name,"Loaded")
-
-
-
-
-btn_show_img = ttk.Button(left_frame,text="Image Preview",command=show_image,bootstyle="secondary")
-btn_show_img.pack(pady=20)
-
-btn_save_as = ttk.Button(left_frame,text="Export as png",command=fn_save_as_png,bootstyle="secondary")
-btn_save_as.pack(pady=20)
-
-
-
-
-btn_save_to_file = ttk.Button(left_frame,text="Save",command=save_file,bootstyle="secondary")
-btn_save_to_file.pack(pady=20)
-
-
-btn_load_file = ttk.Button(left_frame,text="Open",command=load_file,bootstyle="secondary")
-btn_load_file.pack(pady=20)
-
-
-
-
-def fn_show_instructions():
-    var_instructions = '''
-
-
-        Hi, thanks for trying the program.
-
-        These are the keys and tool combinations:
-
-        =========================================
-        Click - Draw
-
-        Right click - delete
-
-        P - Pick color
-
-        F - fill with color
-
-        mouse wheel click - fill with color
-
-        E - Fill with color only the even squares
-
-        ==========================================
-
-        We are open to suggestions and more developers 
-        who want to contribute to the project.
-
-
-    '''
-    alert("Instructions",var_instructions,fixed_size=False)
-
-ttk.Button(left_frame,text="Instructions (How to use)",command=fn_show_instructions).pack()
-
-
-
-
-#Events
-canvas.bind("<Button-1>", clicked_canvas_button1)
-canvas.bind("<B1-Motion>", clicked_canvas_button1)
-canvas.bind("<Button-3>", clicked_canvas_button3)
-canvas.bind("<B3-Motion>", clicked_canvas_button3)
-canvas.bind("<Motion>",update_mouse_position)
-root.bind("<Button-2>",fill_with_color_function_event)
 root.bind("<Key>",fn_key_pressed)
+root.update()
 
 
+
+class new_tab_with_canvas:
+    def __init__(self,amount_rows=60,amount_columns=60,sq_size=15,tabindex=None,matrix=None):
+        # VARIABLES:
+        self.amount_rows=amount_rows   #59
+        self.amount_columns=amount_columns  #65
+        self.sq_size = sq_size
+        self.row = 0
+        self.column = 0
+
+        self.selection_vals = {
+
+        "is_there_a_selection": False,
+        "xstart":0,
+        "ystart":0,
+        "xend":0,
+        "yend":0,
+        "square_id":None
+        }
+
+        self.tabindex = tabindex
+
+        self.mouse_position = StringVar()
+
+        #backup_manager = class_backup_manager()
+
+
+        if matrix == None:
+            self.matrix = create_matrix(self.amount_rows,self.amount_columns)
+        else:
+            self.matrix = matrix
+            self.amount_rows = len(self.matrix)
+            self.amount_columns = len(self.matrix[0])
+
+
+        
+        #CREATE USER INTERFACE
+        self.create_canvas()
+
+
+
+    def create_canvas(self):
+        self.tabFrame = Frame(tabControl)
+
+        if self.tabindex != None:
+            tabControl.insert(self.tabindex, self.tabFrame, text ='New Canvas')
+        else:
+            tabControl.add(self.tabFrame, text ='New Canvas')
+
+        self.canvas_frame =  Frame(self.tabFrame)
+        self.canvas_frame.pack(fill=BOTH,expand=1,padx=20,pady=20)
+
+        self.canvas=ttk.Canvas(self.canvas_frame,bg='#000000',width=1000, height=1000,cursor="crosshair")
+        self.canvas.pack(expand=1)
+
+
+
+        self.mouse_position.set('x:?   y:?')
+        self.lbl_mouse_position = Label(self.tabFrame,textvariable=self.mouse_position)
+        self.lbl_mouse_position.pack(side=TOP)
+
+
+
+        if darkdetect.theme() == "Dark":
+            bg_colors = canvas_bg_dark_colors
+        else:
+            bg_colors = canvas_bg_light_colors
+
+
+        #Create the canvas for drawing 
+        x = 0
+        y = 0
+        even_sq = 0
+        for f in range(self.amount_rows):
+            x = -self.sq_size
+            for c in range(self.amount_columns):
+                x += self.sq_size
+                even_sq = not even_sq
+
+                if self.amount_columns % 2 == 0:
+                    if f % 2 == 0:
+                        if even_sq:
+                            button_number = self.canvas.create_rectangle(x, y, x+self.sq_size-1,y+self.sq_size-1, fill=bg_colors[1], outline = bg_colors[1])
+                        else:
+                            button_number = self.canvas.create_rectangle(x, y, x+self.sq_size-1,y+self.sq_size-1, fill=bg_colors[0], outline = bg_colors[0])
+                    else:
+                        if even_sq:
+                            button_number = self.canvas.create_rectangle(x, y, x+self.sq_size-1,y+self.sq_size-1, fill=bg_colors[0], outline = bg_colors[0])
+                        else:
+                            button_number = self.canvas.create_rectangle(x, y, x+self.sq_size-1,y+self.sq_size-1, fill=bg_colors[1], outline = bg_colors[1])
+                else:
+                    if even_sq:
+                        button_number = self.canvas.create_rectangle(x, y, x+self.sq_size-1,y+self.sq_size-1, fill=bg_colors[0], outline = bg_colors[0])
+                    else:
+                        button_number = self.canvas.create_rectangle(x, y, x+self.sq_size-1,y+self.sq_size-1, fill=bg_colors[1], outline = bg_colors[1])
+            y += self.sq_size
+
+
+        self.update_canvas(self.matrix)
+
+
+
+
+
+        #self.backup_manager.create_backup()
+
+        #Events
+        self.canvas.bind("<Button-1>", self.click_on_canvas)
+        self.canvas.bind("<B1-Motion>", self.motion_click_on_canvas)
+        self.canvas.bind("<Button-3>", self.right_click_on_canvas)
+        self.canvas.bind("<B3-Motion>", self.motion_right_click_on_canvas)
+        self.canvas.bind("<Motion>",self.update_mouse_position)
+        self.canvas.bind("<Button-2>",self.fill_canvas_with_color)
+
+
+
+        root.update()
+
+
+
+    
+    def get_hex_color_of_square(self,r,c,rgba):
+        #determine the color of the square taking into account the default color of the square, 
+        #the color to apply and the alpha. (returns a hex value)
+        
+        button_number = (r -1)*self.amount_columns + c
+
+        if darkdetect.theme() == "Dark":
+            bg_colors = canvas_bg_dark_colors
+        else:
+            bg_colors = canvas_bg_light_colors
+
+        if self.amount_columns % 2 == 0:
+            if r % 2 == 0:
+                if button_number % 2 == 0:
+                    aux_hex_color = rgb_to_hex(  calculate_alpha_color( rgba[0:3] ,hex_to_rgb(bg_colors[1]), rgba[3] ) )
+                else:
+                    aux_hex_color = rgb_to_hex(  calculate_alpha_color( rgba[0:3] ,hex_to_rgb(bg_colors[0]), rgba[3] ) )
+
+            else:
+                if button_number % 2 == 0:
+                    aux_hex_color = rgb_to_hex(  calculate_alpha_color( rgba[0:3] ,hex_to_rgb(bg_colors[0]), rgba[3] ) )
+                else:
+                    aux_hex_color = rgb_to_hex(  calculate_alpha_color( rgba[0:3] ,hex_to_rgb(bg_colors[1]), rgba[3] ) )
+        else:
+            if button_number % 2 == 0:
+                aux_hex_color = rgb_to_hex(  calculate_alpha_color( rgba[0:3] ,hex_to_rgb(bg_colors[0]), rgba[3] ) )
+            else:
+                aux_hex_color = rgb_to_hex(  calculate_alpha_color( rgba[0:3] ,hex_to_rgb(bg_colors[1]), rgba[3] ) )
+
+        return aux_hex_color
+
+
+
+
+
+    def draw_pixel(self,row,column,COLOR=None):
+        if COLOR == None:
+            COLOR = CURRENT_COLOR
+
+        if row <= self.amount_rows and row >0 and column <= self.amount_columns and column >0: 
+            if re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$',COLOR.toHex()) and len(COLOR.toHex()) == 7:
+                # n = (r-1)20 + c
+                button_number = (row -1)*self.amount_columns + column
+
+                if self.selection_vals["is_there_a_selection"]:
+
+                    c1 = math.ceil(self.selection_vals["xstart"]/self.sq_size)
+                    r1 = math.ceil(self.selection_vals["ystart"]/self.sq_size)
+
+                    c2 = math.ceil(self.selection_vals["xend"]/self.sq_size)
+                    r2 = math.ceil(self.selection_vals["yend"]/self.sq_size)
+
+                    if c1 > c2:
+                        aux = c2
+                        c2 = c1
+                        c1 = aux 
+                    if r1 > r2:
+                        aux = r2
+                        r2 = r1
+                        r1 = aux 
+
+                    #c2 -= 1
+                    #r2 -= 1
+
+                    if row > r1 and row < r2 and column > c1 and column < c2:
+                        self.matrix[row-1][column-1] =  COLOR.toRgba()
+                        aux_hex_color = self.get_hex_color_of_square(row,column,COLOR.toRgba())
+                        self.canvas.itemconfig(button_number, fill= aux_hex_color,outline=aux_hex_color  )
+
+                else:
+                    self.matrix[row-1][column-1] =  COLOR.toRgba()
+                    aux_hex_color = self.get_hex_color_of_square(row,column,COLOR.toRgba())
+                    self.canvas.itemconfig(button_number, fill= aux_hex_color,outline=aux_hex_color  )
+            else:
+                alert("Error","please write a valid hex color.")
+
+
+    def remove_pixel(self,row,column):
+        if row <= self.amount_rows and row >0 and column <= self.amount_columns and column >0: 
+            button_number = (row -1)*self.amount_columns + column
+            aux_hex_color = self.get_hex_color_of_square(row,column,[0,0,0,0])
+
+            if self.selection_vals["is_there_a_selection"]:
+
+                c1 = math.ceil(self.selection_vals["xstart"]/self.sq_size)
+                r1 = math.ceil(self.selection_vals["ystart"]/self.sq_size)
+
+                c2 = math.ceil(self.selection_vals["xend"]/self.sq_size)
+                r2 = math.ceil(self.selection_vals["yend"]/self.sq_size)
+
+                if c1 > c2:
+                    aux = c2
+                    c2 = c1
+                    c1 = aux 
+                if r1 > r2:
+                    aux = r2
+                    r2 = r1
+                    r1 = aux 
+                if row > r1 and row < r2 and column > c1 and column < c2:
+                    self.matrix[row-1][column-1] =  (0,0,0,0)
+                    self.canvas.itemconfig(button_number, fill= aux_hex_color,outline=aux_hex_color  )
+
+            else:
+                self.matrix[row-1][column-1] =  (0,0,0,0)
+                self.canvas.itemconfig(button_number, fill= aux_hex_color,outline=aux_hex_color  )
+
+
+
+
+    def click_on_canvas(self,event):
+        global tool_type
+        #backup_manager.create_backup()
+
+        self.update_mouse_position(event)
+        if tool_type == "draw_pixel":
+            self.draw_pixel(self.row,self.column)
+        elif tool_type == "fill_canvas_with_color":
+            self.fill_canvas_with_color()
+        elif tool_type == "pick_color":
+            self.pick_color()
+        elif tool_type == "selection_tool":
+            if self.selection_vals["is_there_a_selection"] == False:
+                self.selection_vals["is_there_a_selection"] = True
+                self.selection_vals["xstart"] = event.x
+                self.selection_vals["ystart"] = event.y
+                self.selection_vals["square_id"] = self.canvas.create_rectangle(event.x, event.y,event.x, event.y,outline="#4266ff",dash=(20,20),width=10)
+            else:
+                self.canvas.delete(self.selection_vals["square_id"])
+                self.selection_vals["is_there_a_selection"] = False
+                
+      
+
+        #tool_type="draw_pixel"
+        #update_tool_button_colors()
+    
+
+    def motion_click_on_canvas(self,event):
+        self.update_mouse_position(event)
+        if tool_type == "draw_pixel":
+            self.draw_pixel(self.row,self.column)
+        elif tool_type == "selection_tool":
+            if self.selection_vals["is_there_a_selection"] == True:
+                self.canvas.coords(self.selection_vals["square_id"],self.selection_vals["xstart"], self.selection_vals["ystart"], event.x,event.y)
+                self.selection_vals["xend"] = event.x
+                self.selection_vals["yend"] = event.y
+
+
+
+
+
+    def right_click_on_canvas(self,event):
+        #backup_manager.create_backup()
+        self.update_mouse_position(event)
+        if tool_type == "draw_pixel":
+            self.remove_pixel(self.row,self.column)
+        elif tool_type == "fill_canvas_with_color": 
+            aux_color = color_class(_rgba_=[0,0,0,0]) #we will use this color to remove the old color from canvas
+            self.fill_canvas_with_color(COLOR=aux_color)
+
+
+    def motion_right_click_on_canvas(self,event):
+        self.update_mouse_position(event)
+        if tool_type == "draw_pixel":
+            self.remove_pixel(self.row,self.column)    
+     
+        
+    def update_mouse_position(self,event=None):
+        self.column = math.ceil(event.x/self.sq_size)
+        self.row = math.ceil(event.y/self.sq_size)
+        
+        self.mouse_position.set(f"x:{self.column} y:{self.row}")
+
+    def is_canvas_active(self):
+        return tabControl.index('current') == self.tabindex
+
+
+    def pick_color(self,event=None):
+        if self.matrix[self.row-1][self.column-1][3]>0:
+            CURRENT_COLOR.set(self.matrix[self.row-1][self.column-1])
+            update_current_color_preview()
+            scl_alpha.set(CURRENT_COLOR.get255Alpha() )
+            lbl_alpha_value.config(text=CURRENT_COLOR.get255Alpha() )
+            scl_red.set(CURRENT_COLOR.getRed())
+            scl_green.set(CURRENT_COLOR.getGreen())
+            scl_blue.set(CURRENT_COLOR.getBlue())
+
+     
+
+    def fill_canvas_with_color(self,event=None, COLOR=None):
+        #backup_manager.create_backup()
+
+        if COLOR == None:
+            COLOR = CURRENT_COLOR
+        
+        if self.row <= self.amount_rows and self.row >0 and self.column <= self.amount_columns and self.column >0: 
+            if re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', COLOR.toHex()) and len(COLOR.toHex()) == 7:
+                sqs_to_fill = []
+                sqs_to_fill.append((self.row,self.column))
+
+                old_color = self.matrix[self.row-1][self.column-1]
+
+                if old_color == COLOR.toRgba():
+                    return
+
+                while(len(sqs_to_fill) != 0):
+                    row = sqs_to_fill[0][0]
+                    column = sqs_to_fill[0][1]
+                    del sqs_to_fill[0]
+
+                    if row <= self.amount_rows and row >0 and column <= self.amount_columns and column >0:
+                        if not ( old_color[3]==0 and COLOR.get255Alpha() == 0):
+                            if  self.matrix[row-1][column-1] == old_color or (self.matrix[row-1][column-1][3] == 0 and old_color[3] == 0)  :
+                                if re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', COLOR.toHex()) and len(COLOR.toHex()) == 7:
+                                    #if COLOR.get255Alpha() != 0:
+                                    #    self.matrix[row-1][column-1] =  COLOR.toRgba()
+                                    #else:
+                                    #    self.matrix[row-1][column-1] = (0,0,0,0)
+
+                                    self.draw_pixel(row,column,COLOR=COLOR)
+
+                                    if self.selection_vals["is_there_a_selection"]:
+
+                                        c1 = math.ceil(self.selection_vals["xstart"]/self.sq_size)
+                                        r1 = math.ceil(self.selection_vals["ystart"]/self.sq_size)
+
+                                        c2 = math.ceil(self.selection_vals["xend"]/self.sq_size)
+                                        r2 = math.ceil(self.selection_vals["yend"]/self.sq_size)
+
+                                        if c1 > c2:
+                                            aux = c2
+                                            c2 = c1
+                                            c1 = aux 
+                                        if r1 > r2:
+                                            aux = r2
+                                            r2 = r1
+                                            r1 = aux 
+
+                                        if row > r1 and row < r2 and column-1 > c1 and column-1 < c2:
+                                            sqs_to_fill.append((row,column-1))
+                                        if row > r1 and row < r2 and column+1 > c1 and column+1 < c2:
+                                            sqs_to_fill.append((row,column+1))
+                                        if row -1 > r1 and row-1 < r2 and column > c1 and column < c2:
+                                            sqs_to_fill.append((row-1,column))
+                                        if row +1 > r1 and row+1 < r2 and column > c1 and column < c2:
+                                            sqs_to_fill.append((row+1,column))
+
+                                    else:
+                                        sqs_to_fill.append((row,column-1))
+                                        sqs_to_fill.append((row,column+1))
+                                        sqs_to_fill.append((row-1,column))
+                                        sqs_to_fill.append((row+1,column))
+                                else:
+                                    alert("Error","please write a valid hex color.")
+            else:
+                alert("Error","please write a valid hex color.")
+
+
+    def create_matrix_from_2_points_in_self_matrix(self,x1,y1,x2,y2):
+
+        x1 = math.ceil(x1/self.sq_size)
+        y1 = math.ceil(y1/self.sq_size)
+
+        x2 = math.ceil(x2/self.sq_size)
+        y2 = math.ceil(y2/self.sq_size)
+
+        if x1 > x2:
+            aux = x2
+            x2 = x1
+            x1 = aux 
+        if y1 > y2:
+            aux = y2
+            y2 = y1
+            y1 = aux 
+
+        x2 -= 1
+        y2 -= 1
+
+        rows = y2 - y1
+        columns = x2 - x1
+
+        if rows < 1 or columns < 1:
+            return None
+
+        new_matrix = create_matrix(rows,columns)
+
+        try:
+            for r in range(y1,y2):
+                for c in range(x1,x2):
+                    new_matrix[r-y1][c-x1] = self.matrix[r][c]
+        except:
+            pass
+
+        return new_matrix
+
+
+
+
+
+
+    def create_png_from_matrix(self,matrix,sq_size): 
+        img = pil.Image.new("RGBA", (len(matrix[1])*sq_size+2, len(matrix)*sq_size +2))
+        draw = pil.ImageDraw.Draw(img)
+        x = 0
+        y = 0
+
+        for f in matrix:
+            x = -sq_size
+            for c in f:
+                x += sq_size
+                if c[3] > 0:
+                    draw.rectangle((x, y, x+sq_size-1, y+sq_size-1), fill=c)
+            y += sq_size
+        return img
+
+
+    def image_preview(self):
+        if self.selection_vals["is_there_a_selection"]:
+            aux_matrix = self.create_matrix_from_2_points_in_self_matrix(self.selection_vals["xstart"],self.selection_vals["ystart"],self.selection_vals["xend"],self.selection_vals["yend"])
+            img = self.create_png_from_matrix(aux_matrix,self.sq_size)
+        else:
+            img = self.create_png_from_matrix(self.matrix,self.sq_size)
+
+        img.show()
+
+
+    def export_as_png_file(self):
+        #sq_size = call_size_chooser()
+
+        if self.selection_vals["is_there_a_selection"]:
+            aux_matrix = self.create_matrix_from_2_points_in_self_matrix(self.selection_vals["xstart"],self.selection_vals["ystart"],self.selection_vals["xend"],self.selection_vals["yend"])
+            img = self.create_png_from_matrix(aux_matrix,self.sq_size)
+        else:
+            img = self.create_png_from_matrix(self.matrix,self.sq_size)
+        
+        file_name = call_save_as_file("Save as a png file:",".png")
+        if file_name != None:
+            img.save(file_name)
+
+
+    def save_to_file(self):
+
+        if self.selection_vals["is_there_a_selection"]:
+            aux_matrix = self.create_matrix_from_2_points_in_self_matrix(self.selection_vals["xstart"],self.selection_vals["ystart"],self.selection_vals["xend"],self.selection_vals["yend"])
+        else:
+            aux_matrix = self.matrix
+
+        file_name = call_save_as_file("Save:",".pxpf")
+        if file_name != None:
+            # writing matrix to a file
+            with open(file_name, 'w') as file:
+                file.write(str(aux_matrix))
+            alert(app_name,"Saved")
+
+
+
+    def update_canvas(self,mtx):
+        button_number = 0
+        for row in range(self.amount_rows):
+            for column in range(self.amount_columns):
+                button_number += 1
+
+                aux_hex_color = self.get_hex_color_of_square(row,column,mtx[row][column])
+                self.canvas.itemconfig(button_number, fill= aux_hex_color,outline =aux_hex_color  )  
+
+
+
+    def show_instructions(self):
+        var_instructions = '''
+
+
+            Hi, thanks for trying the program.
+
+            These are the keys and tool combinations:
+
+            =========================================
+            Click - Draw
+
+            Right click - delete
+
+            P - Pick color
+
+            F - fill with color
+
+            mouse wheel click - fill with color
+
+            E - Fill with color only the even squares
+
+            ==========================================
+
+            We are open to suggestions and more developers 
+            who want to contribute to the project.
+
+
+        '''
+        alert("Instructions",var_instructions,fixed_size=False)
+
+
+
+
+
+
+tab_with_canvas_list = []
+
+
+
+
+def add_new_canvas(event=None):
+    if tabControl.select() == tabControl.tabs()[-1]:
+        index = len(tabControl.tabs())-1
+        #frame = ttk.Frame(tabControl)
+        tab_with_canvas_list.append(new_tab_with_canvas(tabindex=index))
+        #tabControl.insert(index, frame, text="<untitled>")
+        tabControl.select(index)
+
+def add_new_canvas_and_load_from_file(event=None):
+    if tabControl.select() == tabControl.tabs()[-1]:
+        index = len(tabControl.tabs())-1
+        matrix = read_matrix_from_file()
+        if matrix != None:
+            tab_with_canvas_list.append(new_tab_with_canvas(tabindex=index,matrix=matrix))
+            tabControl.select(index)
+
+
+
+tabControl = ttk.Notebook(root)
+tabControl.pack(pady=15,padx=5,fill=X)
+
+
+
+
+
+
+new_tab_menu_frame = ttk.Frame()
+
+center_of_new_tab_menu_frame = ttk.LabelFrame(new_tab_menu_frame,text="What do you want to do?")
+center_of_new_tab_menu_frame.pack(pady=50,padx=30,ipadx=100,ipady=60,expand=1)
+
+button_add_new_canvas = ttk.Button(center_of_new_tab_menu_frame,text="Add new canvas",command=add_new_canvas)
+button_add_new_canvas.pack(pady=10)
+
+button_load_from_file = ttk.Button(center_of_new_tab_menu_frame,text="Load from file",bootstyle="secondary",command=add_new_canvas_and_load_from_file)
+button_load_from_file.pack(pady=10)
+
+
+tabControl.add(new_tab_menu_frame, text="┼")
+
+
+
+start_message =f"Hi there, thanks for using PixPyinter ver: {version}, \ncurrently the project is still in development, so some features are missing."
+start_message = start_message +"\n\n\nIf you are a developer and want to contribute to the project\n join: https://github.com/rc4000/PixPynter"
+
+
+Label(root,text=start_message).pack()
 
 
 
@@ -1382,4 +905,5 @@ root.mainloop()
 
 
 
-
+#TODO
+# FIX ALERT DOEST STOP PROCESS WHEN CLOSE
