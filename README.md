@@ -13,7 +13,8 @@ We are open to suggestions and more developers who want to contribute to the pro
 
 
 
-![image](https://github.com/rc4000/PixPynter/assets/86579760/9158e2bd-41b6-4312-bdb0-701a50337a7a)
+![image](https://github.com/rc4000/PixPynter/assets/86579760/589a5674-bca7-415e-8954-d2efc0be5b64)
+
 
 
 
